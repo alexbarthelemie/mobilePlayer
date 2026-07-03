@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#ff6600">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WebRadio">
+
+<title>Web Radio Player</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background: #000;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  text-align: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  color: #ff6600;
+}
+
+h2 {
+  font-size: 1.2rem;
+  margin-bottom: 15px;
+  color: #ff6600;
+}
+
+button {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin: 8px auto;
+  padding: 16px 20px;
+  font-size: 18px;
+  font-weight: 600;
+  background: #ff6600;
+  border: none;
+  border-radius: 12px;
+  color: #000;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+button:hover {
+  background: #ff8533;
+}
+
+button:active {
+  background: #cc5200;
+  transform: scale(0.98);
+}
+
+.hidden {
+  display: none !important;
+}
+
+#status {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #888;
+  padding: 0 20px;
+}
+
+#menuRadios, #menuStations {
+  width: 100%;
+  padding: 0 20px;
+}
+
+#volumeControl {
+  margin-top: 25px;
+  padding: 0 20px;
+  width: 100%;
+  max-width: 320px;
+}
+
+#volumeControl label {
+  display: block;
+  font-size: 14px;
+  color: #ccc;
+  margin-bottom: 8px;
+}
+
+#volumeSlider {
+  width: 100%;
+  height: 40px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #333;
+  border-radius: 20px;
+  outline: none;
+  accent-color: #ff6600;
+}
+
+#volumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 32px;
+  height: 32px;
+  background: #ff6600;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+#volumeSlider::-moz-range-thumb {
+  width: 32px;
+  height: 32px;
+  background: #ff6600;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.audio-player {
+  display: none;
+}
+</style>
+
+</head>
+<body>
+
+<h1>🎧 Web Radio Player</h1>
+
+<div id="menuRadios">
+  <button onclick="selectRadio('francemusique')">🎵 France Musique</button>
+  <button onclick="selectRadio('fip')">🎵 FIP</button>
+  <button onclick="selectRadio('1fm')">🎵 1FM</button>
+  <button onclick="selectRadio('ssl')">🎵 Sunshine Live</button>
+</div>
+
+<div id="menuStations" class="hidden">
+  <button onclick="goBack()">⬅ Retour</button>
+  <div id="stationsList"></div>
+</div>
+
+<div id="volumeControl">
+  <label for="volumeSlider">🔊 Volume</label>
+  <input type="range" id="volumeSlider" min="0" max="100" value="100" oninput="setVolume(this.value)">
+</div>
+
+<button onclick="stopAudio()">⛔ Arrêter</button>
+
+<div id="status">Prêt - Sélectionnez une station</div>
+
+<audio id="player" class="audio-player"></audio>
+
+<script>
+const radios = {
+  francemusique: {
+    name: "France Musique",
+    stations: [
+      {name: "Direct", urls: ["https://icecast.radiofrance.fr/frm-midfi.mp3"]},
+      {name: "Ocora", urls: ["https://icecast.radiofrance.fr/fro-midfi.mp3"]}
+    ]
+  },
+  fip: {
+    name: "FIP",
+    stations: [
+      {name: "Direct", urls: ["https://icecast.radiofrance.fr/fip-midfi.mp3"]},
+      {name: "Rock", urls: ["https://icecast.radiofrance.fr/fip-rock-midfi.mp3"]},
+      {name: "Jazz", urls: ["https://icecast.radiofrance.fr/fip-jazz-midfi.mp3"]},
+      {name: "Electro", urls: ["https://icecast.radiofrance.fr/fip-electro-midfi.mp3"]},
+      {name: "Pop", urls: ["https://icecast.radiofrance.fr/fip-pop-midfi.mp3"]},
+      {name: " Monde", urls: ["https://icecast.radiofrance.fr/fip-monde-midfi.mp3"]}
+    ]
+  },
+  "1fm": {
+    name: "1FM",
+    stations: [
+      {name: "Bossa Nova", urls: ["http://strm112.1.fm/bossanova_mobile_mp3"]}
+    ]
+  },
+  ssl: {
+    name: "Sunshine Live",
+    stations: [
+      {name: "Chillout", urls: ["https://stream.sunshine-live.de/chillout"]},
+      {name: "Lounge", urls: ["https://stream.sunshine-live.de/lounge"]},
+      {name: "Electric Café", urls: ["https://stream.sunshine-live.de/electric-cafe"]},
+      {name: "Calm Flow", urls: ["https://stream.sunshine-live.de/calm-flow"]}
+    ]
+  }
+};
+
+let currentIndex = 0;
+let currentUrls = [];
+let currentStationName = "";
+
+function selectRadio(radioKey) {
+  let radio = radios[radioKey];
+  let list = document.getElementById("stationsList");
+  list.innerHTML = "";
+
+  document.getElementById("menuRadios").classList.add("hidden");
+  document.getElementById("menuStations").classList.remove("hidden");
+
+  radio.stations.forEach(station => {
+    let btn = document.createElement("button");
+    btn.innerText = station.name;
+    btn.onclick = () => playStation(station);
+    list.appendChild(btn);
+  });
+}
+
+function goBack() {
+  stopAudio();
+  document.getElementById("menuStations").classList.add("hidden");
+  document.getElementById("menuRadios").classList.remove("hidden");
+}
+
+function playStation(station) {
+  currentIndex = 0;
+  currentUrls = station.urls;
+  currentStationName = station.name;
+  tryPlay();
+}
+
+function tryPlay() {
+  let player = document.getElementById("player");
+  let status = document.getElementById("status");
+
+  if (currentIndex >= currentUrls.length) {
+    status.innerText = "Aucune source disponible";
+    return;
+  }
+
+  status.innerText = "Chargement...";
+  player.src = currentUrls[currentIndex];
+  player.volume = document.getElementById("volumeSlider").value / 100;
+  player.play().then(() => {
+    status.innerText = "🎙️ " + currentStationName + " en cours...";
+  }).catch(() => {
+    currentIndex++;
+    tryPlay();
+  });
+}
+
+function stopAudio() {
+  let player = document.getElementById("player");
+  let status = document.getElementById("status");
+  player.pause();
+  player.src = "";
+  status.innerText = "Arrêté";
+}
+
+function setVolume(value) {
+  let player = document.getElementById("player");
+  player.volume = value / 100;
+}
+
+// Initialize volume
+document.addEventListener("DOMContentLoaded", () => {
+  let player = document.getElementById("player");
+  player.volume = 1;
+});
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('SW registered'))
+      .catch(err => console.log('SW registration failed:', err));
+  });
+}
+</script>
+
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
